@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSpotifyAuth } from '../context/SpotifyAuthContext';
-import { usePlayerCoordinator } from '../context/PlayerCoordinatorContext';
 import { toast } from 'sonner';
 import { SpotifyMiniPlayer } from './SpotifyMiniPlayer';
 import { SpotifyFullPlayer } from './SpotifyFullPlayer';
@@ -18,7 +17,6 @@ interface SpotifyPlayerProps {
 
 export const SpotifyPlayer = ({ onReady }: SpotifyPlayerProps) => {
     const { spotifyAccessToken, setDeviceId, isSpotifyAuthenticated } = useSpotifyAuth();
-    const coordinator = usePlayerCoordinator();
     const [player, setPlayer] = useState<any>(null);
     const [isPaused, setIsPaused] = useState(true);
     const [isActive, setIsActive] = useState(false);
@@ -30,7 +28,7 @@ export const SpotifyPlayer = ({ onReady }: SpotifyPlayerProps) => {
     const [isFullPlayer, setIsFullPlayer] = useState(false);
     const [queue, setQueue] = useState<any[]>([]);
     const playerRef = useRef<any>(null);
-    const positionIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const positionIntervalRef = useRef<number | null>(null);
 
     useEffect(() => {
         if (!isSpotifyAuthenticated || !spotifyAccessToken) {
@@ -103,12 +101,6 @@ export const SpotifyPlayer = ({ onReady }: SpotifyPlayerProps) => {
                 const nextTracks = state.track_window.next_tracks || [];
                 setQueue([state.track_window.current_track, ...nextTracks]);
 
-                // When Spotify starts playing, pause admin player (only if coordinator exists)
-                if (!state.paused && coordinator) {
-                    coordinator.pauseAdminPlayer();
-                    coordinator.setActivePlayer('spotify');
-                }
-
                 spotifyPlayer.getCurrentState().then((state: any) => {
                     setIsActive(!!state);
                 });
@@ -127,18 +119,9 @@ export const SpotifyPlayer = ({ onReady }: SpotifyPlayerProps) => {
                 clearInterval(positionIntervalRef.current);
             }
         };
-    }, [spotifyAccessToken, isSpotifyAuthenticated, setDeviceId, onReady, coordinator]);
+    }, [spotifyAccessToken, isSpotifyAuthenticated, setDeviceId, onReady]);
 
-    // Register pause function with coordinator (only if coordinator exists)
-    useEffect(() => {
-        if (coordinator) {
-            coordinator.registerSpotifyPause(() => {
-                if (playerRef.current) {
-                    playerRef.current.pause();
-                }
-            });
-        }
-    }, [coordinator]);
+
 
     // Update position every second when playing
     useEffect(() => {
@@ -166,11 +149,6 @@ export const SpotifyPlayer = ({ onReady }: SpotifyPlayerProps) => {
     const togglePlay = () => {
         if (player) {
             player.togglePlay();
-            // When resuming Spotify, pause admin player (only if coordinator exists)
-            if (isPaused && coordinator) {
-                coordinator.pauseAdminPlayer();
-                coordinator.setActivePlayer('spotify');
-            }
         }
     };
 
