@@ -189,9 +189,13 @@ function AppContent() {
           </Routes>
         </main>
 
-        {/* Players */}
-        <MiniPlayer />
-        <FullPlayer />
+        {/* Players - Only show one at a time */}
+        {!(window as any).spotifyPlayerActive && (
+          <>
+            <MiniPlayer />
+            <FullPlayer />
+          </>
+        )}
         <SpotifyPlayer />
 
         {/* Toast Notifications */}
