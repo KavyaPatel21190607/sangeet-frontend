@@ -35,25 +35,9 @@ function AppContent() {
   const [userType, setUserType] = useState<UserType>('regular');
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
-  const [updateTrigger, setUpdateTrigger] = useState(0);
 
-  const navigate = useNavigate();
   const location = useLocation();
-
-  // Listen for player visibility changes
-  useEffect(() => {
-    const handlePlayerChange = () => {
-      setUpdateTrigger(Date.now());
-    };
-
-    window.addEventListener('pauseSpotifyPlayer', handlePlayerChange);
-    window.addEventListener('pauseAdminPlayer', handlePlayerChange);
-
-    return () => {
-      window.removeEventListener('pauseSpotifyPlayer', handlePlayerChange);
-      window.removeEventListener('pauseAdminPlayer', handlePlayerChange);
-    };
-  }, []);
+  const navigate = useNavigate();
 
   // Check for existing authentication on mount
   useEffect(() => {
@@ -207,12 +191,12 @@ function AppContent() {
 
         {/* Players - Only show one at a time */}
         {!(window as any).spotifyPlayerActive && (
-          <div key={`admin-${updateTrigger}`}>
+          <>
             <MiniPlayer />
             <FullPlayer />
-          </div>
+          </>
         )}
-        <SpotifyPlayer key={`spotify-${updateTrigger}`} />
+        <SpotifyPlayer />
 
         {/* Toast Notifications */}
         <Toaster
