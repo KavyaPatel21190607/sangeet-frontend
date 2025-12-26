@@ -53,6 +53,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const [queue, setQueue] = useState<Track[]>([]);
   const [isFullPlayer, setIsFullPlayer] = useState(false);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
+  const [, forceUpdate] = useState({});
 
   // Initialize audio element
   useEffect(() => {
@@ -73,6 +74,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       if (isPlaying) {
         setIsPlaying(false);
       }
+      // Force re-render to update player visibility
+      forceUpdate({});
     };
 
     window.addEventListener('pauseAdminPlayer', handlePauseAdmin);
@@ -137,6 +140,9 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     // Dispatch event to pause Spotify player
     window.dispatchEvent(new CustomEvent('pauseSpotifyPlayer'));
 
+    // Set global flag to show admin player
+    (window as any).spotifyPlayerActive = false;
+
     setCurrentTrack(track);
     setIsPlaying(true);
     setProgress(0);
@@ -159,6 +165,10 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const resume = () => {
     // Dispatch event to pause Spotify player when resuming
     window.dispatchEvent(new CustomEvent('pauseSpotifyPlayer'));
+
+    // Set global flag to show admin player
+    (window as any).spotifyPlayerActive = false;
+
     setIsPlaying(true);
   };
 
