@@ -53,7 +53,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const [queue, setQueue] = useState<Track[]>([]);
   const [isFullPlayer, setIsFullPlayer] = useState(false);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
-  const [, forceUpdate] = useState({});
+  const [updateTrigger, setUpdateTrigger] = useState(0);
 
   // Initialize audio element
   useEffect(() => {
@@ -74,8 +74,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       if (isPlaying) {
         setIsPlaying(false);
       }
-      // Force re-render to update player visibility
-      forceUpdate({});
+      // Trigger update to show admin player
+      setUpdateTrigger(Date.now());
     };
 
     window.addEventListener('pauseAdminPlayer', handlePauseAdmin);
