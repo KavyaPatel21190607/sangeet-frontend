@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { PlayerProvider } from './context/PlayerContext';
 import { SpotifyAuthProvider } from './context/SpotifyAuthContext';
+import { PlayerCoordinatorProvider } from './context/PlayerCoordinatorContext';
 import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
 import { AuthPage } from './pages/AuthPage';
@@ -215,7 +216,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <SpotifyAuthProvider>
-        <AppContent />
+        <PlayerCoordinatorProvider>
+          <AppContent />
+        </PlayerCoordinatorProvider>
       </SpotifyAuthProvider>
     </BrowserRouter>
   );
