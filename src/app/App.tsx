@@ -35,9 +35,25 @@ function AppContent() {
   const [userType, setUserType] = useState<UserType>('regular');
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [, forceUpdate] = useState({});
 
-  const location = useLocation();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Listen for player visibility changes
+  useEffect(() => {
+    const handlePlayerChange = () => {
+      forceUpdate({});
+    };
+
+    window.addEventListener('pauseSpotifyPlayer', handlePlayerChange);
+    window.addEventListener('pauseAdminPlayer', handlePlayerChange);
+
+    return () => {
+      window.removeEventListener('pauseSpotifyPlayer', handlePlayerChange);
+      window.removeEventListener('pauseAdminPlayer', handlePlayerChange);
+    };
+  }, []);
 
   // Check for existing authentication on mount
   useEffect(() => {
