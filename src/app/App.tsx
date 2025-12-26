@@ -36,29 +36,22 @@ function AppContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [updateTrigger, setUpdateTrigger] = useState(0);
-  const [activePlayerType, setActivePlayerType] = useState<'admin' | 'spotify' | null>(null);
 
   const navigate = useNavigate();
   const location = useLocation();
 
   // Listen for player visibility changes
   useEffect(() => {
-    const handleSpotifyPause = () => {
-      setActivePlayerType('admin');
+    const handlePlayerChange = () => {
       setUpdateTrigger(Date.now());
     };
 
-    const handleAdminPause = () => {
-      setActivePlayerType('spotify');
-      setUpdateTrigger(Date.now());
-    };
-
-    window.addEventListener('pauseSpotifyPlayer', handleSpotifyPause);
-    window.addEventListener('pauseAdminPlayer', handleAdminPause);
+    window.addEventListener('pauseSpotifyPlayer', handlePlayerChange);
+    window.addEventListener('pauseAdminPlayer', handlePlayerChange);
 
     return () => {
-      window.removeEventListener('pauseSpotifyPlayer', handleSpotifyPause);
-      window.removeEventListener('pauseAdminPlayer', handleAdminPause);
+      window.removeEventListener('pauseSpotifyPlayer', handlePlayerChange);
+      window.removeEventListener('pauseAdminPlayer', handlePlayerChange);
     };
   }, []);
 
@@ -213,15 +206,13 @@ function AppContent() {
         </main>
 
         {/* Players - Only show one at a time */}
-        {activePlayerType !== 'spotify' && (
+        {!(window as any).spotifyPlayerActive && (
           <div key={`admin-${updateTrigger}`}>
             <MiniPlayer />
             <FullPlayer />
           </div>
         )}
-        {activePlayerType !== 'admin' && (
-          <SpotifyPlayer key={`spotify-${updateTrigger}`} />
-        )}
+        <SpotifyPlayer key={`spotify-${updateTrigger}`} />
 
         {/* Toast Notifications */}
         <Toaster
