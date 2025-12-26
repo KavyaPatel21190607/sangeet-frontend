@@ -29,6 +29,12 @@ export const SpotifyPlayer = ({ onReady }: SpotifyPlayerProps) => {
     const [queue, setQueue] = useState<any[]>([]);
     const playerRef = useRef<any>(null);
     const positionIntervalRef = useRef<number | null>(null);
+    const [isVisible, setIsVisible] = useState(true);
+
+    // Declare global flag for player coordination
+    useEffect(() => {
+        (window as any).spotifyPlayerActive = false;
+    }, []);
 
     useEffect(() => {
         if (!isSpotifyAuthenticated || !spotifyAccessToken) {
@@ -104,6 +110,9 @@ export const SpotifyPlayer = ({ onReady }: SpotifyPlayerProps) => {
                 // When Spotify starts playing, pause admin player
                 if (!state.paused) {
                     window.dispatchEvent(new CustomEvent('pauseAdminPlayer'));
+                    // Show Spotify player
+                    setIsVisible(true);
+                    (window as any).spotifyPlayerActive = true;
                 }
 
                 spotifyPlayer.getCurrentState().then((state: any) => {
@@ -132,6 +141,9 @@ export const SpotifyPlayer = ({ onReady }: SpotifyPlayerProps) => {
             if (playerRef.current && !isPaused) {
                 playerRef.current.pause();
             }
+            // Hide Spotify player when admin plays
+            setIsVisible(false);
+            (window as any).spotifyPlayerActive = false;
         };
 
         window.addEventListener('pauseSpotifyPlayer', handlePauseSpotify);
@@ -169,6 +181,8 @@ export const SpotifyPlayer = ({ onReady }: SpotifyPlayerProps) => {
             // When resuming Spotify, pause admin player
             if (isPaused) {
                 window.dispatchEvent(new CustomEvent('pauseAdminPlayer'));
+                setIsVisible(true);
+                (window as any).spotifyPlayerActive = true;
             }
         }
     };
@@ -217,7 +231,7 @@ export const SpotifyPlayer = ({ onReady }: SpotifyPlayerProps) => {
         setIsFullPlayer(prev => !prev);
     };
 
-    if (!isSpotifyAuthenticated || !isActive || !currentTrack) {
+    if (!isSpotifyAuthenticated || !isActive || !currentTrack || !isVisible) {
         return null;
     }
 
