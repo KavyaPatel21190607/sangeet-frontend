@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
-import { motion } from 'motion/react';
-import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX } from 'lucide-react';
 import { useSpotifyAuth } from '../context/SpotifyAuthContext';
 import { toast } from 'sonner';
+import { SpotifyMiniPlayer } from './SpotifyMiniPlayer';
+import { SpotifyFullPlayer } from './SpotifyFullPlayer';
 
 declare global {
     interface Window {
@@ -21,9 +21,14 @@ export const SpotifyPlayer = ({ onReady }: SpotifyPlayerProps) => {
     const [isPaused, setIsPaused] = useState(true);
     const [isActive, setIsActive] = useState(false);
     const [currentTrack, setCurrentTrack] = useState<any>(null);
+    const [position, setPosition] = useState(0);
+    const [duration, setDuration] = useState(0);
     const [volume, setVolume] = useState(0.5);
     const [isMuted, setIsMuted] = useState(false);
+    const [isFullPlayer, setIsFullPlayer] = useState(false);
+    const [queue, setQueue] = useState<any[]>([]);
     const playerRef = useRef<any>(null);
+    const positionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         if (!isSpotifyAuthenticated || !spotifyAccessToken) {
@@ -89,6 +94,12 @@ export const SpotifyPlayer = ({ onReady }: SpotifyPlayerProps) => {
 
                 setCurrentTrack(state.track_window.current_track);
                 setIsPaused(state.paused);
+                setPosition(state.position);
+                setDuration(state.duration);
+
+                // Update queue
+                const nextTracks = state.track_window.next_tracks || [];
+                setQueue([state.track_window.current_track, ...nextTracks]);
 
                 spotifyPlayer.getCurrentState().then((state: any) => {
                     setIsActive(!!state);
@@ -104,8 +115,34 @@ export const SpotifyPlayer = ({ onReady }: SpotifyPlayerProps) => {
             if (playerRef.current) {
                 playerRef.current.disconnect();
             }
+            if (positionIntervalRef.current) {
+                clearInterval(positionIntervalRef.current);
+            }
         };
     }, [spotifyAccessToken, isSpotifyAuthenticated, setDeviceId, onReady]);
+
+    // Update position every second when playing
+    useEffect(() => {
+        if (positionIntervalRef.current) {
+            clearInterval(positionIntervalRef.current);
+        }
+
+        if (!isPaused && player) {
+            positionIntervalRef.current = setInterval(() => {
+                player.getCurrentState().then((state: any) => {
+                    if (state) {
+                        setPosition(state.position);
+                    }
+                });
+            }, 1000);
+        }
+
+        return () => {
+            if (positionIntervalRef.current) {
+                clearInterval(positionIntervalRef.current);
+            }
+        };
+    }, [isPaused, player]);
 
     const togglePlay = () => {
         if (player) {
@@ -122,6 +159,14 @@ export const SpotifyPlayer = ({ onReady }: SpotifyPlayerProps) => {
     const skipToPrevious = () => {
         if (player) {
             player.previousTrack();
+        }
+    };
+
+    const handleSeek = (newPosition: number) => {
+        if (player) {
+            player.seek(newPosition).then(() => {
+                setPosition(newPosition);
+            });
         }
     };
 
@@ -145,96 +190,51 @@ export const SpotifyPlayer = ({ onReady }: SpotifyPlayerProps) => {
         }
     };
 
+    const toggleFullPlayer = () => {
+        setIsFullPlayer(prev => !prev);
+    };
+
     if (!isSpotifyAuthenticated || !isActive || !currentTrack) {
         return null;
     }
 
     return (
-        <motion.div
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="fixed bottom-20 left-0 right-0 z-40 backdrop-blur-3xl bg-black/60 border-t border-white/10 p-4"
-        >
-            <div className="max-w-7xl mx-auto flex items-center gap-4">
-                {/* Track Info */}
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <img
-                        src={currentTrack.album.images[0]?.url}
-                        alt={currentTrack.name}
-                        className="w-14 h-14 rounded object-cover"
-                    />
-                    <div className="min-w-0">
-                        <h4 className="font-medium truncate">{currentTrack.name}</h4>
-                        <p className="text-sm text-gray-400 truncate">
-                            {currentTrack.artists.map((artist: any) => artist.name).join(', ')}
-                        </p>
-                    </div>
-                </div>
-
-                {/* Playback Controls */}
-                <div className="flex items-center gap-2">
-                    <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={skipToPrevious}
-                        className="p-2 hover:bg-white/10 rounded-full transition-colors"
-                    >
-                        <SkipBack className="w-5 h-5" />
-                    </motion.button>
-
-                    <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={togglePlay}
-                        className="w-10 h-10 bg-emerald-400 rounded-full flex items-center justify-center"
-                    >
-                        {isPaused ? (
-                            <Play className="w-5 h-5 text-black fill-current ml-0.5" />
-                        ) : (
-                            <Pause className="w-5 h-5 text-black fill-current" />
-                        )}
-                    </motion.button>
-
-                    <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={skipToNext}
-                        className="p-2 hover:bg-white/10 rounded-full transition-colors"
-                    >
-                        <SkipForward className="w-5 h-5" />
-                    </motion.button>
-                </div>
-
-                {/* Volume Control */}
-                <div className="flex items-center gap-2">
-                    <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={toggleMute}
-                        className="p-2 hover:bg-white/10 rounded-full transition-colors"
-                    >
-                        {isMuted ? (
-                            <VolumeX className="w-5 h-5" />
-                        ) : (
-                            <Volume2 className="w-5 h-5" />
-                        )}
-                    </motion.button>
-                    <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.01"
-                        value={isMuted ? 0 : volume}
-                        onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                        className="w-24 accent-emerald-400"
-                    />
-                </div>
-
-                {/* Spotify Badge */}
-                <div className="flex items-center gap-2 px-3 py-1 bg-emerald-400/20 rounded-full">
-                    <span className="text-xs text-emerald-400 font-medium">Spotify</span>
-                </div>
-            </div>
-        </motion.div>
+        <>
+            {isFullPlayer ? (
+                <SpotifyFullPlayer
+                    currentTrack={currentTrack}
+                    isPaused={isPaused}
+                    position={position}
+                    duration={duration}
+                    volume={volume}
+                    isMuted={isMuted}
+                    queue={queue}
+                    isFullPlayer={isFullPlayer}
+                    onTogglePlay={togglePlay}
+                    onNext={skipToNext}
+                    onPrevious={skipToPrevious}
+                    onSeek={handleSeek}
+                    onVolumeChange={handleVolumeChange}
+                    onToggleMute={toggleMute}
+                    onToggleFullPlayer={toggleFullPlayer}
+                />
+            ) : (
+                <SpotifyMiniPlayer
+                    currentTrack={currentTrack}
+                    isPaused={isPaused}
+                    position={position}
+                    duration={duration}
+                    volume={volume}
+                    isMuted={isMuted}
+                    onTogglePlay={togglePlay}
+                    onNext={skipToNext}
+                    onPrevious={skipToPrevious}
+                    onSeek={handleSeek}
+                    onVolumeChange={handleVolumeChange}
+                    onToggleMute={toggleMute}
+                    onToggleFullPlayer={toggleFullPlayer}
+                />
+            )}
+        </>
     );
 };
