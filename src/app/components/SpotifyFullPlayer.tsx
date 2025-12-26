@@ -53,18 +53,15 @@ export const SpotifyFullPlayer = ({
     const [showQueue, setShowQueue] = useState(false);
     const [visualizerBars, setVisualizerBars] = useState<number[]>([]);
 
-    // Generate random visualizer bars
+    // Visualizer animation
     useEffect(() => {
-        if (!isPaused) {
-            setVisualizerBars(Array(50).fill(10));
-            return;
-        }
+        if (isPaused) return;
 
         const interval = setInterval(() => {
-            setVisualizerBars(Array(50).fill(0).map(() =>
-                Math.random() * 100 + 20
-            ));
-        }, 100);
+            setVisualizerBars(
+                Array.from({ length: 50 }, () => Math.random() * 100)
+            );
+        }, 100); // Update every 100ms for smooth animation
 
         return () => clearInterval(interval);
     }, [isPaused]);
