@@ -101,6 +101,11 @@ export const SpotifyPlayer = ({ onReady }: SpotifyPlayerProps) => {
                 const nextTracks = state.track_window.next_tracks || [];
                 setQueue([state.track_window.current_track, ...nextTracks]);
 
+                // When Spotify starts playing, pause admin player
+                if (!state.paused) {
+                    window.dispatchEvent(new CustomEvent('pauseAdminPlayer'));
+                }
+
                 spotifyPlayer.getCurrentState().then((state: any) => {
                     setIsActive(!!state);
                 });
@@ -120,6 +125,18 @@ export const SpotifyPlayer = ({ onReady }: SpotifyPlayerProps) => {
             }
         };
     }, [spotifyAccessToken, isSpotifyAuthenticated, setDeviceId, onReady]);
+
+    // Listen for admin player events to pause Spotify
+    useEffect(() => {
+        const handlePauseSpotify = () => {
+            if (playerRef.current && !isPaused) {
+                playerRef.current.pause();
+            }
+        };
+
+        window.addEventListener('pauseSpotifyPlayer', handlePauseSpotify);
+        return () => window.removeEventListener('pauseSpotifyPlayer', handlePauseSpotify);
+    }, [isPaused]);
 
 
 
@@ -149,6 +166,10 @@ export const SpotifyPlayer = ({ onReady }: SpotifyPlayerProps) => {
     const togglePlay = () => {
         if (player) {
             player.togglePlay();
+            // When resuming Spotify, pause admin player
+            if (isPaused) {
+                window.dispatchEvent(new CustomEvent('pauseAdminPlayer'));
+            }
         }
     };
 
