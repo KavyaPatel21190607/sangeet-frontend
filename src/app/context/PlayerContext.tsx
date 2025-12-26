@@ -67,6 +67,18 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
+  // Listen for Spotify player events to pause admin player
+  useEffect(() => {
+    const handlePauseAdmin = () => {
+      if (isPlaying) {
+        setIsPlaying(false);
+      }
+    };
+
+    window.addEventListener('pauseAdminPlayer', handlePauseAdmin);
+    return () => window.removeEventListener('pauseAdminPlayer', handlePauseAdmin);
+  }, [isPlaying]);
+
   // Update audio source when track changes
   useEffect(() => {
     if (!audioElement || !currentTrack) return;
@@ -122,6 +134,9 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   }, [audioElement, queue]);
 
   const play = async (track: Track) => {
+    // Dispatch event to pause Spotify player
+    window.dispatchEvent(new CustomEvent('pauseSpotifyPlayer'));
+
     setCurrentTrack(track);
     setIsPlaying(true);
     setProgress(0);
@@ -141,7 +156,11 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const pause = () => setIsPlaying(false);
-  const resume = () => setIsPlaying(true);
+  const resume = () => {
+    // Dispatch event to pause Spotify player when resuming
+    window.dispatchEvent(new CustomEvent('pauseSpotifyPlayer'));
+    setIsPlaying(true);
+  };
 
   const getTrackId = (track: Track) => track._id || track.id || '';
 
