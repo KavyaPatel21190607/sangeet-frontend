@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { PlayerProvider } from './context/PlayerContext';
 import { SpotifyAuthProvider } from './context/SpotifyAuthContext';
-import { PlayerCoordinatorProvider } from './context/PlayerCoordinatorContext';
 import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
 import { AuthPage } from './pages/AuthPage';
@@ -146,71 +145,69 @@ function AppContent() {
   }
 
   return (
-    <PlayerCoordinatorProvider>
-      <PlayerProvider>
-        <div className="min-h-screen bg-black text-white">
-          {/* Desktop Sidebar */}
-          <div className="hidden lg:block">
-            <Sidebar
-              currentPage={getCurrentPage()}
-              onNavigate={handleNavigate}
-              isAdmin={isAdmin}
-              onLogout={handleLogout}
-            />
-          </div>
-
-          {/* Mobile Menu */}
-          <MobileMenu
+    <PlayerProvider>
+      <div className="min-h-screen bg-black text-white">
+        {/* Desktop Sidebar */}
+        <div className="hidden lg:block">
+          <Sidebar
             currentPage={getCurrentPage()}
             onNavigate={handleNavigate}
             isAdmin={isAdmin}
             onLogout={handleLogout}
           />
-
-          {/* Main Content */}
-          <main className="lg:ml-64 p-4 md:p-8 pt-20 lg:pt-8" key={location.pathname}>
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/search" element={<SearchPage userType={userType} />} />
-              <Route path="/liked" element={<LikedPage />} />
-              <Route path="/playlists" element={<PlaylistsPage />} />
-              <Route path="/playlists/:id" element={<PlaylistDetailPage />} />
-              <Route path="/profile" element={<UserProfilePage userType={userType} />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/spotify/callback" element={<SpotifyCallbackPage />} />
-              {isAdmin && (
-                <>
-                  <Route path="/admin" element={<AdminOverviewPage />} />
-                  <Route path="/admin/upload" element={<AdminUploadPage />} />
-                  <Route path="/admin/content" element={<AdminContentPage />} />
-                  <Route path="/admin/users" element={<AdminUsersPage />} />
-                  <Route path="/admin/profile" element={<AdminProfilePage />} />
-                </>
-              )}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </main>
-
-          {/* Players */}
-          <MiniPlayer />
-          <FullPlayer />
-          <SpotifyPlayer />
-
-          {/* Toast Notifications */}
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              style: {
-                background: 'rgba(0, 0, 0, 0.9)',
-                backdropFilter: 'blur(20px)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                color: 'white',
-              },
-            }}
-          />
         </div>
-      </PlayerProvider>
-    </PlayerCoordinatorProvider>
+
+        {/* Mobile Menu */}
+        <MobileMenu
+          currentPage={getCurrentPage()}
+          onNavigate={handleNavigate}
+          isAdmin={isAdmin}
+          onLogout={handleLogout}
+        />
+
+        {/* Main Content */}
+        <main className="lg:ml-64 p-4 md:p-8 pt-20 lg:pt-8" key={location.pathname}>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/search" element={<SearchPage userType={userType} />} />
+            <Route path="/liked" element={<LikedPage />} />
+            <Route path="/playlists" element={<PlaylistsPage />} />
+            <Route path="/playlists/:id" element={<PlaylistDetailPage />} />
+            <Route path="/profile" element={<UserProfilePage userType={userType} />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/spotify/callback" element={<SpotifyCallbackPage />} />
+            {isAdmin && (
+              <>
+                <Route path="/admin" element={<AdminOverviewPage />} />
+                <Route path="/admin/upload" element={<AdminUploadPage />} />
+                <Route path="/admin/content" element={<AdminContentPage />} />
+                <Route path="/admin/users" element={<AdminUsersPage />} />
+                <Route path="/admin/profile" element={<AdminProfilePage />} />
+              </>
+            )}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
+
+        {/* Players */}
+        <MiniPlayer />
+        <FullPlayer />
+        <SpotifyPlayer />
+
+        {/* Toast Notifications */}
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: 'rgba(0, 0, 0, 0.9)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              color: 'white',
+            },
+          }}
+        />
+      </div>
+    </PlayerProvider>
   );
 }
 
