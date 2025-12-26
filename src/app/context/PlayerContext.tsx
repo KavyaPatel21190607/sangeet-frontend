@@ -70,11 +70,13 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  // Register pause function with coordinator
+  // Register pause function with coordinator (only if coordinator exists)
   useEffect(() => {
-    coordinator.registerAdminPause(() => {
-      setIsPlaying(false);
-    });
+    if (coordinator) {
+      coordinator.registerAdminPause(() => {
+        setIsPlaying(false);
+      });
+    }
   }, [coordinator]);
 
   // Update audio source when track changes
@@ -132,9 +134,11 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   }, [audioElement, queue]);
 
   const play = async (track: Track) => {
-    // Pause Spotify player if it's playing
-    coordinator.pauseSpotifyPlayer();
-    coordinator.setActivePlayer('admin');
+    // Pause Spotify player if coordinator is available
+    if (coordinator) {
+      coordinator.pauseSpotifyPlayer();
+      coordinator.setActivePlayer('admin');
+    }
 
     setCurrentTrack(track);
     setIsPlaying(true);
@@ -155,10 +159,13 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const pause = () => setIsPlaying(false);
+
   const resume = () => {
-    // Pause Spotify player when resuming admin player
-    coordinator.pauseSpotifyPlayer();
-    coordinator.setActivePlayer('admin');
+    // Pause Spotify player when resuming admin player (only if coordinator exists)
+    if (coordinator) {
+      coordinator.pauseSpotifyPlayer();
+      coordinator.setActivePlayer('admin');
+    }
     setIsPlaying(true);
   };
 
