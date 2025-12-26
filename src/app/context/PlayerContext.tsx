@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { userService } from '../../services/userService';
+import { usePlayerCoordinator } from './PlayerCoordinatorContext';
 
 interface Track {
   _id?: string;
@@ -54,6 +55,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const [isFullPlayer, setIsFullPlayer] = useState(false);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
 
+  const coordinator = usePlayerCoordinator();
+
   // Initialize audio element
   useEffect(() => {
     const audio = new Audio();
@@ -66,6 +69,13 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       audio.src = '';
     };
   }, []);
+
+  // Register pause function with coordinator
+  useEffect(() => {
+    coordinator.registerAdminPause(() => {
+      setIsPlaying(false);
+    });
+  }, [coordinator]);
 
   // Update audio source when track changes
   useEffect(() => {
@@ -122,6 +132,10 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   }, [audioElement, queue]);
 
   const play = async (track: Track) => {
+    // Pause Spotify player if it's playing
+    coordinator.pauseSpotifyPlayer();
+    coordinator.setActivePlayer('admin');
+
     setCurrentTrack(track);
     setIsPlaying(true);
     setProgress(0);
@@ -141,7 +155,12 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const pause = () => setIsPlaying(false);
-  const resume = () => setIsPlaying(true);
+  const resume = () => {
+    // Pause Spotify player when resuming admin player
+    coordinator.pauseSpotifyPlayer();
+    coordinator.setActivePlayer('admin');
+    setIsPlaying(true);
+  };
 
   const getTrackId = (track: Track) => track._id || track.id || '';
 
