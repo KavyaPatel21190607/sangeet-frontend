@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { useState, useEffect } from 'react';
-import { Search, Crown, User as UserIcon, Trash2, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
+import { Search, Crown, User as UserIcon, Trash2, ArrowUpCircle, ArrowDownCircle, Shield } from 'lucide-react';
 import { cn } from '../components/ui/utils';
 import { adminService } from '../../services/adminService';
 import { toast } from 'sonner';
@@ -280,17 +280,25 @@ export const AdminUsersPage = () => {
                                                 </td>
                                                 <td className="px-4 py-3 text-gray-400">{user.email}</td>
                                                 <td className="px-4 py-3">
-                                                    {user.userType === 'premium' ? (
-                                                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-yellow-400/20 to-orange-400/20 text-yellow-400 text-xs rounded-full border border-yellow-400/30">
-                                                            <Crown className="w-3 h-3" />
-                                                            Premium
-                                                        </span>
-                                                    ) : (
-                                                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-gray-400/20 text-gray-400 text-xs rounded-full">
-                                                            <UserIcon className="w-3 h-3" />
-                                                            Regular
-                                                        </span>
-                                                    )}
+                                                    <div className="flex items-center gap-2">
+                                                        {user.userType === 'premium' ? (
+                                                            <span className="inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-yellow-400/20 to-orange-400/20 text-yellow-400 text-xs rounded-full border border-yellow-400/30">
+                                                                <Crown className="w-3 h-3" />
+                                                                Premium
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-1 px-3 py-1 bg-gray-400/20 text-gray-400 text-xs rounded-full">
+                                                                <UserIcon className="w-3 h-3" />
+                                                                Regular
+                                                            </span>
+                                                        )}
+                                                        {user.role === 'admin' && (
+                                                            <span className="inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-purple-400/20 to-pink-400/20 text-purple-400 text-xs rounded-full border border-purple-400/30">
+                                                                <Shield className="w-3 h-3" />
+                                                                Admin
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td className="px-4 py-3 text-gray-400 text-sm">
                                                     {formatDate(user.createdAt)}
@@ -358,17 +366,25 @@ export const AdminUsersPage = () => {
                                         <h4 className="font-medium text-sm mb-1">{user.name}</h4>
                                         <p className="text-xs text-gray-400 mb-3 truncate w-full">{user.email}</p>
 
-                                        {user.userType === 'premium' ? (
-                                            <span className="inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-yellow-400/20 to-orange-400/20 text-yellow-400 text-xs rounded-full border border-yellow-400/30 mb-3">
-                                                <Crown className="w-3 h-3" />
-                                                Premium
-                                            </span>
-                                        ) : (
-                                            <span className="inline-flex items-center gap-1 px-3 py-1 bg-gray-400/20 text-gray-400 text-xs rounded-full mb-3">
-                                                <UserIcon className="w-3 h-3" />
-                                                Regular
-                                            </span>
-                                        )}
+                                        <div className="flex items-center gap-2 mb-3">
+                                            {user.userType === 'premium' ? (
+                                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-yellow-400/20 to-orange-400/20 text-yellow-400 text-xs rounded-full border border-yellow-400/30">
+                                                    <Crown className="w-3 h-3" />
+                                                    Premium
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-gray-400/20 text-gray-400 text-xs rounded-full">
+                                                    <UserIcon className="w-3 h-3" />
+                                                    Regular
+                                                </span>
+                                            )}
+                                            {user.role === 'admin' && (
+                                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-purple-400/20 to-pink-400/20 text-purple-400 text-xs rounded-full border border-purple-400/30">
+                                                    <Shield className="w-3 h-3" />
+                                                    Admin
+                                                </span>
+                                            )}
+                                        </div>
 
                                         <p className="text-xs text-gray-500 mb-3">
                                             Joined {formatDate(user.createdAt)}
