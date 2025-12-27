@@ -1,222 +1,151 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { spotifyAuthService } from '../../services/spotifyAuthService';
-import { toast } from 'sonner';
+import express from 'express';
+import SpotifyWebApi from 'spotify-web-api-node';
 
-interface SpotifyUser {
-    id: string;
-    displayName: string;
-    email: string;
-    product: string; // 'premium' or 'free'
-    images: any[];
-    country?: string;
-}
+const router = express.Router();
 
-interface SpotifyAuthContextType {
-    isSpotifyAuthenticated: boolean;
-    spotifyAccessToken: string | null;
-    spotifyRefreshToken: string | null;
-    spotifyUser: SpotifyUser | null;
-    deviceId: string | null;
-    loginWithSpotify: () => void;
-    handleSpotifyCallback: (code: string) => Promise<void>;
-    logoutSpotify: () => void;
-    setDeviceId: (id: string) => void;
-}
+// Initialize Spotify API with credentials
+const spotifyApi = new SpotifyWebApi({
+    clientId: process.env.SPOTIFY_CLIENT_ID,
+    clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
+    redirectUri: process.env.SPOTIFY_REDIRECT_URI
+});
 
-const SpotifyAuthContext = createContext<SpotifyAuthContextType | undefined>(undefined);
+/**
+ * @route   GET /api/spotify-auth/login
+ * @desc    Initiate Spotify OAuth flow
+ * @access  Public
+ */
+router.get('/login', (req, res) => {
+    try {
+        const scopes = [
+            'streaming',
+            'user-read-email',
+            'user-read-private',
+            'user-modify-playback-state',
+            'user-read-playback-state',
+            'user-read-currently-playing'
+        ];
 
-export const useSpotifyAuth = () => {
-    const context = useContext(SpotifyAuthContext);
-    if (!context) {
-        throw new Error('useSpotifyAuth must be used within SpotifyAuthProvider');
-    }
-    return context;
-};
+        const state = Math.random().toString(36).substring(7);
+        const authorizeURL = spotifyApi.createAuthorizeURL(scopes, state);
 
-interface SpotifyAuthProviderProps {
-    children: ReactNode;
-}
-
-export const SpotifyAuthProvider = ({ children }: SpotifyAuthProviderProps) => {
-    const [isSpotifyAuthenticated, setIsSpotifyAuthenticated] = useState(false);
-    const [spotifyAccessToken, setSpotifyAccessToken] = useState<string | null>(null);
-    const [spotifyRefreshToken, setSpotifyRefreshToken] = useState<string | null>(null);
-    const [spotifyUser, setSpotifyUser] = useState<SpotifyUser | null>(null);
-    const [deviceId, setDeviceId] = useState<string | null>(null);
-
-    // Load tokens from localStorage on mount
-    useEffect(() => {
-        const accessToken = localStorage.getItem('spotify_access_token');
-        const refreshToken = localStorage.getItem('spotify_refresh_token');
-        const user = localStorage.getItem('spotify_user');
-
-        console.log('Loading Spotify data from localStorage:', {
-            hasAccessToken: !!accessToken,
-            hasRefreshToken: !!refreshToken,
-            userDataRaw: user
+        res.json({
+            success: true,
+            authorizeURL
         });
+    } catch (error) {
+        console.error('Spotify login error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to initiate Spotify login'
+        });
+    }
+});
 
-        if (accessToken && refreshToken) {
-            setSpotifyAccessToken(accessToken);
-            setSpotifyRefreshToken(refreshToken);
-            setIsSpotifyAuthenticated(true);
+/**
+ * @route   POST /api/spotify-auth/callback
+ * @desc    Handle Spotify OAuth callback
+ * @access  Public
+ */
+router.post('/callback', async (req, res) => {
+    try {
+        const { code } = req.body;
 
-            if (user) {
-                try {
-                    const parsedUser = JSON.parse(user);
-                    console.log('Parsed Spotify user:', parsedUser);
-                    setSpotifyUser(parsedUser);
-                } catch (error) {
-                    console.error('Failed to parse Spotify user data:', error);
-                    localStorage.removeItem('spotify_user');
-                }
-            }
-
-            // Check if token needs refresh
-            checkAndRefreshToken(refreshToken);
+        if (!code) {
+            return res.status(400).json({
+                success: false,
+                message: 'Authorization code is required'
+            });
         }
-    }, []);
 
-    // Auto-refresh token before expiration
-    const checkAndRefreshToken = async (refreshToken: string) => {
-        const tokenExpiry = localStorage.getItem('spotify_token_expiry');
-        if (tokenExpiry) {
-            const expiryTime = parseInt(tokenExpiry);
-            const now = Date.now();
+        // Exchange code for access token
+        const data = await spotifyApi.authorizationCodeGrant(code);
 
-            // Refresh if token expires in less than 5 minutes
-            if (now >= expiryTime - 5 * 60 * 1000) {
-                await refreshAccessToken(refreshToken);
-            }
+        res.json({
+            success: true,
+            accessToken: data.body.access_token,
+            refreshToken: data.body.refresh_token,
+            expiresIn: data.body.expires_in
+        });
+    } catch (error) {
+        console.error('Spotify callback error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to exchange authorization code'
+        });
+    }
+});
+
+/**
+ * @route   POST /api/spotify-auth/refresh
+ * @desc    Refresh Spotify access token
+ * @access  Public
+ */
+router.post('/refresh', async (req, res) => {
+    try {
+        const { refreshToken } = req.body;
+
+        if (!refreshToken) {
+            return res.status(400).json({
+                success: false,
+                message: 'Refresh token is required'
+            });
         }
-    };
 
-    const refreshAccessToken = async (refreshToken: string) => {
-        try {
-            const response = await spotifyAuthService.refreshToken(refreshToken);
+        spotifyApi.setRefreshToken(refreshToken);
+        const data = await spotifyApi.refreshAccessToken();
 
-            if (response.success) {
-                setSpotifyAccessToken(response.accessToken);
-                localStorage.setItem('spotify_access_token', response.accessToken);
+        res.json({
+            success: true,
+            accessToken: data.body.access_token,
+            expiresIn: data.body.expires_in
+        });
+    } catch (error) {
+        console.error('Spotify refresh error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to refresh access token'
+        });
+    }
+});
 
-                const expiryTime = Date.now() + response.expiresIn * 1000;
-                localStorage.setItem('spotify_token_expiry', expiryTime.toString());
+/**
+ * @route   GET /api/spotify-auth/me
+ * @desc    Get current Spotify user profile
+ * @access  Public
+ */
+router.get('/me', async (req, res) => {
+    try {
+        const { accessToken } = req.query;
 
-                // Schedule next refresh
-                setTimeout(() => refreshAccessToken(refreshToken), (response.expiresIn - 300) * 1000);
-            }
-        } catch (error) {
-            console.error('Token refresh failed:', error);
-            logoutSpotify();
+        if (!accessToken) {
+            return res.status(400).json({
+                success: false,
+                message: 'Access token is required'
+            });
         }
-    };
 
-    const loginWithSpotify = async () => {
-        try {
-            console.log('Initiating Spotify login...');
-            const response = await spotifyAuthService.initiateLogin();
-            console.log('Spotify login response:', response);
+        spotifyApi.setAccessToken(accessToken);
+        const data = await spotifyApi.getMe();
 
-            if (response.success && response.authorizeURL) {
-                console.log('Redirecting to:', response.authorizeURL);
-                // Redirect to Spotify authorization
-                window.location.href = response.authorizeURL;
-            } else {
-                console.error('Invalid response from login endpoint:', response);
-                toast.error('Failed to get Spotify authorization URL');
+        res.json({
+            success: true,
+            user: {
+                id: data.body.id,
+                displayName: data.body.display_name,
+                email: data.body.email,
+                country: data.body.country,
+                product: data.body.product, // 'premium' or 'free'
+                images: data.body.images
             }
-        } catch (error: any) {
-            console.error('Spotify login error:', error);
-            console.error('Error details:', error.response?.data || error.message);
-            toast.error('Failed to initiate Spotify login: ' + (error.response?.data?.message || error.message));
-        }
-    };
+        });
+    } catch (error) {
+        console.error('Spotify get user error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get user profile'
+        });
+    }
+});
 
-    const handleSpotifyCallback = async (code: string) => {
-        try {
-            console.log('Starting Spotify callback with code:', code);
-            const response = await spotifyAuthService.handleCallback(code);
-            console.log('Callback response:', response);
-
-            if (response.success) {
-                // Store tokens
-                setSpotifyAccessToken(response.accessToken);
-                setSpotifyRefreshToken(response.refreshToken);
-                setIsSpotifyAuthenticated(true);
-
-                localStorage.setItem('spotify_access_token', response.accessToken);
-                localStorage.setItem('spotify_refresh_token', response.refreshToken);
-
-                const expiryTime = Date.now() + response.expiresIn * 1000;
-                localStorage.setItem('spotify_token_expiry', expiryTime.toString());
-
-                console.log('Tokens stored, now fetching user profile...');
-
-                // Get user profile
-                try {
-                    const userResponse = await spotifyAuthService.getUserProfile(response.accessToken);
-                    console.log('User profile response:', userResponse);
-
-                    if (userResponse.success && userResponse.user) {
-                        console.log('Setting Spotify user:', userResponse.user);
-                        setSpotifyUser(userResponse.user);
-                        localStorage.setItem('spotify_user', JSON.stringify(userResponse.user));
-                        console.log('Spotify user saved to localStorage');
-
-                        // Check if user has Premium
-                        if (userResponse.user.product !== 'premium') {
-                            toast.warning('Spotify Premium required for full playback');
-                        } else {
-                            toast.success(`Welcome, ${userResponse.user.displayName}!`);
-                        }
-                    } else {
-                        console.error('User profile fetch failed:', userResponse);
-                        toast.error('Failed to load Spotify profile');
-                    }
-                } catch (profileError) {
-                    console.error('Error fetching user profile:', profileError);
-                    toast.error('Failed to load Spotify profile');
-                }
-
-                // Schedule token refresh
-                setTimeout(() => refreshAccessToken(response.refreshToken), (response.expiresIn - 300) * 1000);
-            }
-        } catch (error) {
-            console.error('Spotify callback error:', error);
-            toast.error('Failed to authenticate with Spotify');
-        }
-    };
-
-    const logoutSpotify = () => {
-        setIsSpotifyAuthenticated(false);
-        setSpotifyAccessToken(null);
-        setSpotifyRefreshToken(null);
-        setSpotifyUser(null);
-        setDeviceId(null);
-
-        localStorage.removeItem('spotify_access_token');
-        localStorage.removeItem('spotify_refresh_token');
-        localStorage.removeItem('spotify_user');
-        localStorage.removeItem('spotify_token_expiry');
-
-        toast.info('Logged out from Spotify');
-    };
-
-    const value = {
-        isSpotifyAuthenticated,
-        spotifyAccessToken,
-        spotifyRefreshToken,
-        spotifyUser,
-        deviceId,
-        loginWithSpotify,
-        handleSpotifyCallback,
-        logoutSpotify,
-        setDeviceId,
-    };
-
-    return (
-        <SpotifyAuthContext.Provider value={value}>
-            {children}
-        </SpotifyAuthContext.Provider>
-    );
-};
+export default router;
