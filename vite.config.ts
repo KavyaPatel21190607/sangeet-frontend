@@ -16,10 +16,4 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  build: {
-    rollupOptions: {
-      external: ['express', 'spotify-web-api-node']
-    }
-  }
 })
-
