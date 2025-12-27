@@ -18,7 +18,7 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      external: ['express']
+      external: ['express', 'spotify-web-api-node']
     }
   }
 })
