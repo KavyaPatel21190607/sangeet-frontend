@@ -82,7 +82,7 @@ export const Sidebar = ({ currentPage, onNavigate, isAdmin, onLogout }: SidebarP
       </nav>
 
       {/* Bottom Actions */}
-      <div className="p-4 border-t border-white/10 space-y-2">
+      <div className="p-4 pb-28 border-t border-white/10 space-y-2">
         {!isAdmin && (
           <motion.button
             whileHover={{ x: 4 }}
