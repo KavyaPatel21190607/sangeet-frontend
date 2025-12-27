@@ -113,14 +113,22 @@ export const SpotifyAuthProvider = ({ children }: SpotifyAuthProviderProps) => {
 
     const loginWithSpotify = async () => {
         try {
+            console.log('Initiating Spotify login...');
             const response = await spotifyAuthService.initiateLogin();
+            console.log('Spotify login response:', response);
+
             if (response.success && response.authorizeURL) {
+                console.log('Redirecting to:', response.authorizeURL);
                 // Redirect to Spotify authorization
                 window.location.href = response.authorizeURL;
+            } else {
+                console.error('Invalid response from login endpoint:', response);
+                toast.error('Failed to get Spotify authorization URL');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Spotify login error:', error);
-            toast.error('Failed to initiate Spotify login');
+            console.error('Error details:', error.response?.data || error.message);
+            toast.error('Failed to initiate Spotify login: ' + (error.response?.data?.message || error.message));
         }
     };
 
